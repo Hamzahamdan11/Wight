@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+   <html lang="ar">
+   <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>تتبع أوزان النادي</title>
+     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+     <link rel="manifest" href="manifest.json">
+     <style>
+       body {
+         font-family: 'Roboto', sans-serif;
+         direction: rtl;
+         background: linear-gradient(135deg, #1c2526, #2e3b3e);
+         color: #ffffff;
+         padding: 20px;
+         min-height: 100vh;
+         display: flex;
+         justify-content: center;
+         align-items: flex-start;
+       }
+       .container {
+         max-width: 800px;
+         width: 100%;
+         background: #252a2f;
+         padding: 20px;
+         border-radius: 10px;
+         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+       }
+       h2 {
+         text-align: center;
+         color: #ff3d3d;
+         font-weight: 700;
+         margin-bottom: 20px;
+       }
+       .form-group {
+         margin-bottom: 15px;
+       }
+       label {
+         display: block;
+         font-size: 1.1em;
+         color: #d1d1d1;
+         margin-bottom: 5px;
+       }
+       input, select {
+         padding: 10px;
+         width: 100%;
+         border: 1px solid #444;
+         border-radius: 5px;
+         background: #333;
+         color: #fff;
+         font-size: 1em;
+         transition: border-color 0.3s;
+       }
+       input:focus, select:focus {
+         outline: none;
+         border-color: #ff3d3d;
+         box-shadow: 0 0 5px rgba(255, 61, 61, 0.5);
+       }
+       button {
+         padding: 12px;
+         background: #ff3d3d;
+         color: #fff;
+         border: none;
+         border-radius: 5px;
+         cursor: pointer;
+         font-size: 1.1em;
+         font-weight: 700;
+         width: 100%;
+         transition: background 0.3s, transform 0.2s;
+         margin-top: 10px;
+       }
+       button:hover {
+         background: #e02b2b;
+         transform: translateY(-2px);
+       }
+       button:active {
+         background: #cc2a2a;
+         transform: translateY(0);
+       }
+       table {
+         margin-top: 20px;
+         width: 100%;
+         border-collapse: collapse;
+         background: #2e3338;
+         border-radius: 5px;
+         overflow: hidden;
+       }
+       th, td {
+         border: 1px solid #444;
+         padding: 12px;
+         text-align: center;
+         color: #d1d1d1;
+       }
+       th {
+         background: #1c2526;
+         font-weight: 700;
+         color: #ff3d3d;
+       }
+       tr:nth-child(even) {
+         background: #33383d;
+       }
+       tr:hover {
+         background: #3a4147;
+       }
+       @media (max-width: 600px) {
+         .container {
+           padding: 15px;
+         }
+         h2 {
+           font-size: 1.5em;
+         }
+         .form-group label {
+           font-size: 1em;
+         }
+         input, select, button {
+           font-size: 0.9em;
+           padding: 8px;
+         }
+         table {
+           font-size: 0.85em;
+           display: block;
+           overflow-x: auto;
+         }
+         th, td {
+           padding: 8px;
+         }
+       }
+     </style>
+   </head>
+   <body>
+     <div class="container">
+       <h2>📋 تتبع أوزان تمارينك</h2>
+
+       <div class="form-group">
+         <label>اسم المستخدم:</label>
+         <input id="user" placeholder="مثال: أحمد">
+       </div>
+
+       <div class="form-group">
+         <label>اسم التمرين:</label>
+         <input id="exercise" placeholder="مثال: بنش برس">
+       </div>
+
+       <div class="form-group">
+         <label>الوزن (كغم):</label>
+         <input id="weight" type="number" placeholder="مثال: 60">
+       </div>
+
+       <div class="form-group">
+         <label>عدد التكرارات:</label>
+         <input id="reps" type="number" placeholder="مثال: 10">
+       </div>
+
+       <button onclick="addEntry()">➕ حفظ التمرين</button>
+       <button onclick="clearEntries()">🗑️ مسح جميع السجلات</button>
+
+       <div class="form-group">
+         <label>اختر المستخدم لعرض سجلاته:</label>
+         <select id="userSelect" onchange="displayEntries()">
+           <option value="">-- اختر مستخدم --</option>
+         </select>
+       </div>
+
+       <table>
+         <thead>
+           <tr>
+             <th>💪 التمرين</th>
+             <th>⚖️ الوزن</th>
+             <th>🔁 التكرارات</th>
+             <th>📅 التاريخ</th>
+           </tr>
+         </thead>
+         <tbody id="logTableBody">
+           <!-- السجلات ستُضاف هنا -->
+         </tbody>
+       </table>
+     </div>
+
+     <script>
+       let entries = JSON.parse(localStorage.getItem("gymEntries")) || {};
+       let currentUser = "";
+
+       updateUserSelect();
+       displayEntries();
+
+       function addEntry() {
+         const user = document.getElementById("user").value.trim();
+         const exercise = document.getElementById("exercise").value.trim();
+         const weight = document.getElementById("weight").value.trim();
+         const reps = document.getElementById("reps").value.trim();
+         const date = new Date().toLocaleDateString("ar-EG");
+
+         if (!user || !exercise || !weight || !reps) {
+           alert("يرجى تعبئة جميع الحقول");
+           return;
+         }
+
+         if (!entries[user]) {
+           entries[user] = [];
+         }
+
+         const newEntry = { exercise, weight, reps, date };
+         entries[user].push(newEntry);
+
+         localStorage.setItem("gymEntries", JSON.stringify(entries));
+
+         updateUserSelect();
+         document.getElementById("userSelect").value = user;
+         displayEntries();
+
+         document.getElementById("exercise").value = "";
+         document.getElementById("weight").value = "";
+         document.getElementById("reps").value = "";
+       }
+
+       function updateUserSelect() {
+         const userSelect = document.getElementById("userSelect");
+         userSelect.innerHTML = '<option value="">-- اختر مستخدم --</option>';
+         Object.keys(entries).forEach(user => {
+           const option = document.createElement("option");
+           option.value = user;
+           option.textContent = user;
+           userSelect.appendChild(option);
+         });
+       }
+
+       function displayEntries() {
+         const userSelect = document.getElementById("userSelect");
+         currentUser = userSelect.value;
+         const tbody = document.getElementById("logTableBody");
+         tbody.innerHTML = "";
+
+         if (currentUser && entries[currentUser]) {
+           entries[currentUser].forEach(entry => {
+             const row = `
+               <tr>
+                 <td>${entry.exercise}</td>
+                 <td>${entry.weight} كغم</td>
+                 <td>${entry.reps}</td>
+                 <td>${entry.date}</td>
+               </tr>
+             `;
+             tbody.innerHTML += row;
+           });
+         }
+       }
+
+       function clearEntries() {
+         if (confirm("هل أنت متأكد من مسح جميع السجلات؟")) {
+           entries = {};
+           localStorage.removeItem("gymEntries");
+           updateUserSelect();
+           displayEntries();
+         }
+       }
+
+       if ('serviceWorker' in navigator) {
+         navigator.serviceWorker.register('sw.js').then(() => {
+           console.log('Service Worker Registered');
+         }).catch(error => {
+           console.log('Service Worker Registration Failed:', error);
+         });
+       }
+     </script>
+   </body>
+   </html>
